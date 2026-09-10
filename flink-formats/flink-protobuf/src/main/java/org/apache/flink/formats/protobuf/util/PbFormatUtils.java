@@ -108,11 +108,28 @@ public class PbFormatUtils {
                         ? fileDescriptor.getOptions().getJavaPackage()
                         : fileDescriptor.getPackage();
         if (fileDescriptor.getOptions().getJavaMultipleFiles()) {
-            return javaPackageName + ".";
+            return joinNonEmptySegments(javaPackageName);
         } else {
             String outerClassName = getOuterClassName(fileDescriptor);
-            return javaPackageName + "." + outerClassName + ".";
+            return joinNonEmptySegments(javaPackageName, outerClassName);
         }
+    }
+
+    /**
+     * Joins the given segments with {@code "."} and appends a trailing {@code "."}, skipping any
+     * segment that is empty. A {@code .proto} file that declares neither {@code package} nor {@code
+     * option java_package} yields an empty Java package name; without skipping it here the result
+     * would start with a leading dot (e.g. {@code .Outer.}), which downstream codegen cannot parse
+     * as a type reference.
+     */
+    private static String joinNonEmptySegments(String... segments) {
+        StringBuilder result = new StringBuilder();
+        for (String segment : segments) {
+            if (segment != null && !segment.isEmpty()) {
+                result.append(segment).append('.');
+            }
+        }
+        return result.toString();
     }
 
     public static Descriptors.Descriptor getDescriptor(String className) {
